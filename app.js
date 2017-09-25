@@ -5,6 +5,8 @@ const nunjucks = require('nunjucks');
 const path = require('path');
 const models = require('./models/index');
 const chalk = require('chalk');
+const _ = require('lodash');
+const router = require('./routes');
 
 const app = express();
 
@@ -19,13 +21,11 @@ app.use(bodyParser.json());
 models.db.sync({})
 .then(() => {
   app.listen(3000, () => {
-    chalk.green('LISTEN ON 3000');
+    console.log(chalk.green('LISTEN ON 3000'));
   });
 })
 .catch(console.error);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/', (req, res, next) => {
-  res.render('index.html');
-});
+app.use('/', router);

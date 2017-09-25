@@ -4,6 +4,14 @@ const db = new Sequelize('postgres://localhost:5432/wikistack', {
 });
 const chalk = require('chalk');
 
+const generateUrlTitle = title => {
+  if (title) {
+    return title.replace(/\s+/g, '_').replace(/\W/g, '');
+  } else {
+    return Math.random().toString(36).substring(2, 7);
+  }
+};
+
 const Page = db.define('page', {
   title: {
     type: Sequelize.STRING,
@@ -23,14 +31,33 @@ const Page = db.define('page', {
   date: {
     type: Sequelize.DATE,
     defaultValue: Sequelize.NOW
+  },
+  tags: {
+    type: Sequelize.ARRAY(Sequelize.STRING)
   }
 }, {
+  hooks: {
+    beforeValidate: (page, options) => {
+      page.urlTitle = generateUrlTitle(page.title);
+    }
+  },
   getterMethods: {
     route() {
       return '/wiki/' + this.urlTitle;
     }
   }
 });
+
+Page.prototype.findByTag = tagsToFind => {
+  Page.findAll({
+    where: {
+      tags: {
+        $overlap: tagsToFind
+      }
+    }
+  })
+    .then(pages => pages);
+};
 
 const User = db.define('user', {
   name: {
@@ -44,23 +71,15 @@ const User = db.define('user', {
       isEmail: true
     }
   }
+}, {
+  getterMethods: {
+    route() {
+      return '/users/' + this.id;
+    }
+  }
 });
 
-// const testUser = User.build({
-//   name: 'testguy',
-//   email: 'test@test.test'
-// });
-
-// testUser.save();
-
-// const testPage = Page.build({
-//   title: 'test',
-//   urlTitle: 'test.html',
-//   content: 'test',
-//   status: 'open',
-// });
-
-// testPage.save();
+Page.belongsTo(User, { as: 'author' });
 
 module.exports = {
   db: db,
